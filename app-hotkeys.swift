@@ -113,15 +113,9 @@ func setFront(_ pid: pid_t) -> OSStatus {
     return err != noErr ? err : setFrontProcessWithOptions(&psn, 0)  // 0 = all windows, like KM
 }
 
-func hasWindows(_ pid: pid_t) -> Bool {
-    let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
-    return (list as? [[String: Any]] ?? []).contains {
-        $0[kCGWindowOwnerPID as String] as? pid_t == pid && $0[kCGWindowLayer as String] as? Int == 0
-            && ($0[kCGWindowAlpha as String] as? Double ?? 1) > 0
-    }
-}
-
-// What a Dock click sends: the app opens (or unminimizes) a window if it shows none.
+// What a Dock click sends (KM's "Reopen initial windows"). The app decides: AppKit counts its own
+// windows, including ones on other Spaces, so with visible windows nothing happens, with only
+// minimized ones one is unminimized, and with none a new window opens.
 func reopen(_ pid: pid_t) -> OSStatus {
     let event = NSAppleEventDescriptor(
         eventClass: AEEventClass(kCoreEventClass), eventID: AEEventID(kAEReopenApplication),
@@ -137,16 +131,11 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
     let start = DispatchTime.now(), request = activationRequest
     let ms = { String(format: "%.1f ms", Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e6) }
     if let app = runningApp(target) {
-        let pid = app.processIdentifier, wasHidden = app.isHidden  // SetFront unhides its windows
-        var action = "already front"
-        if NSWorkspace.shared.frontmostApplication?.processIdentifier != pid {
-            let err = setFront(pid)
-            action = err == noErr ? "front" : "SetFrontProcessWithOptions failed (\(err))"
-        }
-        if !wasHidden && !hasWindows(pid) {
-            let err = reopen(pid)
-            action += err == noErr ? ", reopened" : ", reopen failed (\(err))"
-        }
+        // Also when it is already in front, like KM's "leave it at the front": flags 0 raises all
+        // its windows, e.g. one buried under another app's window.
+        let pid = app.processIdentifier, err = setFront(pid), reopenErr = reopen(pid)
+        var action = err == noErr ? "front" : "SetFrontProcessWithOptions failed (\(err))"
+        action += reopenErr == noErr ? ", reopened" : ", reopen failed (\(reopenErr))"
         log("\(target) (pid \(pid)): \(action) in \(ms())")
         return done(!action.contains("failed"))
     }
@@ -170,7 +159,7 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
 
 let args = Array(CommandLine.arguments.dropFirst())
 let defaultConfig = NSHomeDirectory() + "/.config/app-hotkeys/hotkeys.conf"
-let version = "0.1.0"
+let version = "0.1.1"
 
 if args.first == "--version" { print("app-hotkeys \(version)"); exit(0) }
 if args.first == "--check" {

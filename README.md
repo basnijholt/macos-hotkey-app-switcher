@@ -17,7 +17,7 @@
 
 ---
 
-Press a key combination and the app comes to the front with all its windows. If it isn't running, it is launched. If it has no windows open, it gets a reopen, like a click on its Dock icon. If it is already in front, nothing happens.
+Press a key combination and the app comes to the front with all its windows, even if it is already in front (a window buried under another app's comes back on top). If it isn't running, it is launched. It also gets a reopen, like a click on its Dock icon, which the app handles itself: nothing happens if it has a window open, a minimized window is restored, and an app with no windows opens one.
 
 ## Why
 
@@ -113,7 +113,7 @@ line 2: ctrl+alt+shift+t = com.apple.Terminal
 
 ## How it works
 
-A Carbon `RegisterEventHotKey` handler calls `SetFrontProcessWithOptions` in-process, the same call behind Keyboard Maestro's "Activate a Specific Application" action. It raises the app with all its windows and skips the cooperative-activation handshake, which is what makes it fast. An app with no windows on screen gets a reopen Apple Event, and an app that is already in front is left alone.
+A Carbon `RegisterEventHotKey` handler calls `SetFrontProcessWithOptions` in-process, the same call behind Keyboard Maestro's "Activate a Specific Application" action. It raises the app with all its windows and skips the cooperative-activation handshake, which is what makes it fast. It does so even when the app is already in front, like Keyboard Maestro's "leave it at the front". Then it sends the reopen Apple Event a Dock click sends (Keyboard Maestro's "Reopen initial windows"); the app decides what to do with it, counting its own windows, including ones on other Spaces.
 
 The config file is watched, so edits apply within a fraction of a second (with a 2 s poll as a fallback).
 

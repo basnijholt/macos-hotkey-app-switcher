@@ -8,7 +8,7 @@
 # TCC permission (no event tap, no Accessibility), so a new /nix/store path after a rebuild is fine.
 swiftPackages.stdenv.mkDerivation {
   pname = "app-hotkeys";
-  version = "0.1.0";
+  version = "0.1.1";
   src = ./app-hotkeys.swift;
   dontUnpack = true;
   nativeBuildInputs = [ swift ];
