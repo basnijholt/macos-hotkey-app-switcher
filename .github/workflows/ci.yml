@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build universal binary
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Typecheck with warnings as errors
+        run: swiftc -typecheck -warnings-as-errors -framework AppKit -framework Carbon app-hotkeys.swift
+
+      - name: Build (arm64 + x86_64)
+        run: scripts/build.sh
+
+      - name: Test
+        run: tests/check.sh build/app-hotkeys
+
+      - name: Test the x86_64 slice under Rosetta
+        run: |
+          sudo softwareupdate --install-rosetta --agree-to-license > /dev/null 2>&1 || true
+          arch -x86_64 build/app-hotkeys --version
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-hotkeys-macos-universal
+          path: build/app-hotkeys
+          if-no-files-found: error
+
+  nix:
+    name: Nix build
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+
+      - name: nix build
+        run: nix build .#default --print-build-logs
+
+      - name: Test
+        run: tests/check.sh result/bin/app-hotkeys
+
+      - name: package.nix and the binary agree on the version
+        run: test "$(result/bin/app-hotkeys --version)" = "app-hotkeys $(nix eval --raw .#default.version)"
+
+      - name: nix flake check
+        run: nix flake check --all-systems
