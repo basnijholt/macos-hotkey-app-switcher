@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Smoke-test a built binary: tests/check.sh path/to/app-hotkeys
+# Smoke-test a built binary: tests/check.sh path/to/macos-hotkey-app-switcher
 set -euo pipefail
-bin=$(realpath "${1:?usage: tests/check.sh <app-hotkeys binary>}")
+bin=$(realpath "${1:?usage: tests/check.sh <macos-hotkey-app-switcher binary>}")
 cd "$(dirname "$0")/.."
 
 echo "== $bin --version"
 version=$("$bin" --version)
 echo "$version"
-[[ $version =~ ^app-hotkeys\ [0-9]+\.[0-9]+\.[0-9]+$ ]]
+[[ $version =~ ^macos-hotkey-app-switcher\ [0-9]+\.[0-9]+\.[0-9]+$ ]]
 
 echo "== the example config passes --check"
 "$bin" --check examples/hotkeys.conf

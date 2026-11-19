@@ -1,10 +1,10 @@
-// app-hotkeys: global hotkeys that bring an app to the front, read from a plain text file.
+// macos-hotkey-app-switcher: global hotkeys that bring an app to the front, read from a plain text file.
 // Copies Keyboard Maestro's "Activate a Specific Application": a Carbon RegisterEventHotKey
 // handler calls SetFrontProcessWithOptions. No event tap, so no Accessibility permission.
-//   app-hotkeys [config]            run resident (default ~/.config/app-hotkeys/hotkeys.conf)
-//   app-hotkeys --check [config]    parse, print the bindings, exit 1 on errors
-//   app-hotkeys --activate <app>    run the activation path once (bundle id, or a path with a /)
-//   app-hotkeys --version           print the version
+//   macos-hotkey-app-switcher [config]            run resident (default ~/.config/macos-hotkey-app-switcher/hotkeys.conf)
+//   macos-hotkey-app-switcher --check [config]    parse, print the bindings, exit 1 on errors
+//   macos-hotkey-app-switcher --activate <app>    run the activation path once (bundle id, or a path with a /)
+//   macos-hotkey-app-switcher --version           print the version
 import AppKit
 import Carbon
 
@@ -158,10 +158,10 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
 // MARK: Resident
 
 let args = Array(CommandLine.arguments.dropFirst())
-let defaultConfig = NSHomeDirectory() + "/.config/app-hotkeys/hotkeys.conf"
-let version = "0.1.1"
+let defaultConfig = NSHomeDirectory() + "/.config/macos-hotkey-app-switcher/hotkeys.conf"
+let version = "0.2.0"
 
-if args.first == "--version" { print("app-hotkeys \(version)"); exit(0) }
+if args.first == "--version" { print("macos-hotkey-app-switcher \(version)"); exit(0) }
 if args.first == "--check" {
     let path = args.count > 1 ? args[1] : defaultConfig
     guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { log("cannot read \(path)"); exit(1) }
@@ -173,13 +173,13 @@ if args.first == "--check" {
     exit(errors.isEmpty ? 0 : 1)
 }
 if args.first == "--activate" {
-    guard args.count == 2 else { log("usage: app-hotkeys --activate <bundle-id|path.app>"); exit(2) }
+    guard args.count == 2 else { log("usage: macos-hotkey-app-switcher --activate <bundle-id|path.app>"); exit(2) }
     activate(args[1]) { ok in exit(ok ? 0 : 1) }
     DispatchQueue.main.asyncAfter(deadline: .now() + 15) { log("timed out"); exit(1) }
     RunLoop.main.run()
 }
 if let a = args.first, a.hasPrefix("-") || args.count > 1 {
-    log("usage: app-hotkeys [config] | --check [config] | --activate <bundle-id|path.app> | --version"); exit(2)
+    log("usage: macos-hotkey-app-switcher [config] | --check [config] | --activate <bundle-id|path.app> | --version"); exit(2)
 }
 
 let configPath = args.first ?? defaultConfig

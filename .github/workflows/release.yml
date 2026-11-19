@@ -18,18 +18,18 @@ jobs:
         run: scripts/build.sh
 
       - name: Test
-        run: tests/check.sh build/app-hotkeys
+        run: tests/check.sh build/macos-hotkey-app-switcher
 
-      - name: The tag matches app-hotkeys --version
-        run: test "$(build/app-hotkeys --version)" = "app-hotkeys ${GITHUB_REF_NAME#v}"
+      - name: The tag matches macos-hotkey-app-switcher --version
+        run: test "$(build/macos-hotkey-app-switcher --version)" = "macos-hotkey-app-switcher ${GITHUB_REF_NAME#v}"
 
       - name: Package
         id: package
         run: |
           version="${GITHUB_REF_NAME#v}"
-          name="app-hotkeys-$version-macos-universal"
+          name="macos-hotkey-app-switcher-$version-macos-universal"
           mkdir -p "dist/$name"
-          cp build/app-hotkeys LICENSE README.md examples/hotkeys.conf "dist/$name/"
+          cp build/macos-hotkey-app-switcher LICENSE README.md examples/hotkeys.conf "dist/$name/"
           tar -C dist -czf "dist/$name.tar.gz" "$name"
           cd dist
           shasum -a 256 "$name.tar.gz" | tee "$name.tar.gz.sha256"
@@ -46,8 +46,8 @@ jobs:
           ## Install
 
           \`\`\`sh
-          brew install basnijholt/tap/app-hotkeys
-          brew services start app-hotkeys
+          brew install basnijholt/tap/macos-hotkey-app-switcher
+          brew services start macos-hotkey-app-switcher
           \`\`\`
 
           Or download \`$NAME.tar.gz\` below: a universal (Apple silicon + Intel) binary for macOS 13 and later.
@@ -55,4 +55,4 @@ jobs:
           SHA-256: \`$SHA256\`
           NOTES
           gh release create "$GITHUB_REF_NAME" "dist/$NAME.tar.gz" "dist/$NAME.tar.gz.sha256" \
-            --verify-tag --title "app-hotkeys ${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes
+            --verify-tag --title "macos-hotkey-app-switcher ${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <title>app-hotkeys</title>
+  <title>macos-hotkey-app-switcher</title>
   <style>
     @media (prefers-reduced-motion: no-preference) {
       .cap, .shadow, .back, .front, .halo { animation: 5s ease-in-out infinite; }

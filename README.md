@@ -1,21 +1,23 @@
 <p align="center">
-  <img src="assets/logo.svg" width="128" height="128" alt="app-hotkeys logo">
+  <img src="assets/logo.svg" width="128" height="128" alt="macos-hotkey-app-switcher logo">
 </p>
 
-<h1 align="center">app-hotkeys</h1>
+<h1 align="center">macos-hotkey-app-switcher</h1>
 
 <p align="center">
   <b>Global macOS hotkeys that bring an app to the front, read from a plain text file.</b>
 </p>
 
 <p align="center">
-  <a href="https://github.com/basnijholt/app-hotkeys/actions/workflows/ci.yml"><img src="https://github.com/basnijholt/app-hotkeys/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/basnijholt/app-hotkeys/releases/latest"><img src="https://img.shields.io/github/v/release/basnijholt/app-hotkeys" alt="Latest release"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/basnijholt/app-hotkeys" alt="MIT license"></a>
+  <a href="https://github.com/basnijholt/macos-hotkey-app-switcher/actions/workflows/ci.yml"><img src="https://github.com/basnijholt/macos-hotkey-app-switcher/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/basnijholt/macos-hotkey-app-switcher/releases/latest"><img src="https://img.shields.io/github/v/release/basnijholt/macos-hotkey-app-switcher" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/basnijholt/macos-hotkey-app-switcher" alt="MIT license"></a>
   <img src="https://img.shields.io/badge/macOS-13%2B-black?logo=apple" alt="macOS 13+">
 </p>
 
 ---
+
+> Formerly `app-hotkeys`: move your config to `~/.config/macos-hotkey-app-switcher/hotkeys.conf`; `brew upgrade` migrates the Homebrew install.
 
 Press a key combination and the app comes to the front with all its windows, even if it is already in front (a window buried under another app's comes back on top). If it isn't running, it is launched. It also gets a reopen, like a click on its Dock icon, which the app handles itself: nothing happens if it has a window open, a minimized window is restored, and an app with no windows opens one.
 
@@ -28,7 +30,7 @@ Press a key combination and the app comes to the front with all its windows, eve
 
 ## Config
 
-`~/.config/app-hotkeys/hotkeys.conf`:
+`~/.config/macos-hotkey-app-switcher/hotkeys.conf`:
 
 ```ini
 ctrl+alt+shift+s = com.apple.Safari
@@ -45,30 +47,30 @@ One binding per line: `modifiers+key = bundle id`. A value with a `/` is a path 
 ### Homebrew
 
 ```sh
-brew install basnijholt/tap/app-hotkeys
-brew services start app-hotkeys
+brew install basnijholt/tap/macos-hotkey-app-switcher
+brew services start macos-hotkey-app-switcher
 ```
 
-Logs go to `$(brew --prefix)/var/log/app-hotkeys.log`.
+Logs go to `$(brew --prefix)/var/log/macos-hotkey-app-switcher.log`.
 
 ### nix-darwin
 
 ```nix
 # flake.nix
-inputs.app-hotkeys.url = "github:basnijholt/app-hotkeys";
-inputs.app-hotkeys.inputs.nixpkgs.follows = "nixpkgs";
+inputs.macos-hotkey-app-switcher.url = "github:basnijholt/macos-hotkey-app-switcher";
+inputs.macos-hotkey-app-switcher.inputs.nixpkgs.follows = "nixpkgs";
 
 # in darwinSystem { modules = [ … ]; }
-inputs.app-hotkeys.darwinModules.default
-{ services.app-hotkeys.enable = true; }
+inputs.macos-hotkey-app-switcher.darwinModules.default
+{ services.macos-hotkey-app-switcher.enable = true; }
 ```
 
-This runs it as a launchd user agent in your GUI session, logging to `~/Library/Logs/app-hotkeys/current`.
+This runs it as a launchd user agent in your GUI session, logging to `~/Library/Logs/macos-hotkey-app-switcher/current`.
 
 ### Nix
 
 ```sh
-nix run github:basnijholt/app-hotkeys -- --check
+nix run github:basnijholt/macos-hotkey-app-switcher -- --check
 ```
 
 ### From source
@@ -76,11 +78,11 @@ nix run github:basnijholt/app-hotkeys -- --check
 Needs the Xcode command line tools.
 
 ```sh
-swiftc -O -framework AppKit -framework Carbon app-hotkeys.swift -o app-hotkeys
-./app-hotkeys
+swiftc -O -framework AppKit -framework Carbon macos-hotkey-app-switcher.swift -o macos-hotkey-app-switcher
+./macos-hotkey-app-switcher
 ```
 
-`scripts/build.sh` builds a universal (Apple silicon + Intel) binary at `build/app-hotkeys`.
+`scripts/build.sh` builds a universal (Apple silicon + Intel) binary at `build/macos-hotkey-app-switcher`.
 
 ## Config reference
 
@@ -99,14 +101,14 @@ A file with an error is not applied: the previous bindings stay, and the log nam
 ## Usage
 
 ```text
-app-hotkeys [config]            run resident (default ~/.config/app-hotkeys/hotkeys.conf)
-app-hotkeys --check [config]    parse, print the bindings, exit 1 on errors
-app-hotkeys --activate <app>    bring one app to the front once (bundle id, or a path with a /)
-app-hotkeys --version           print the version
+macos-hotkey-app-switcher [config]            run resident (default ~/.config/macos-hotkey-app-switcher/hotkeys.conf)
+macos-hotkey-app-switcher --check [config]    parse, print the bindings, exit 1 on errors
+macos-hotkey-app-switcher --activate <app>    bring one app to the front once (bundle id, or a path with a /)
+macos-hotkey-app-switcher --version           print the version
 ```
 
 ```console
-$ app-hotkeys --check
+$ macos-hotkey-app-switcher --check
 line 1: ctrl+alt+shift+s = com.apple.Safari
 line 2: ctrl+alt+shift+t = com.apple.Terminal
 ```
@@ -123,7 +125,7 @@ From key press to app in front, median, on a MacBook M2:
 
 | Method | Median |
 |---|---:|
-| **app-hotkeys** | **27 ms** |
+| **macos-hotkey-app-switcher** | **27 ms** |
 | `open -b <bundle id>` | 58 ms |
 | `osascript -e 'tell application id "…" to activate'` | 112 ms |
 
@@ -138,8 +140,8 @@ Another app holds the same key combination. macOS accepts the second registratio
 <details>
 <summary><b>Where are the logs?</b></summary>
 
-- Homebrew: `$(brew --prefix)/var/log/app-hotkeys.log`
-- nix-darwin: `~/Library/Logs/app-hotkeys/current`
+- Homebrew: `$(brew --prefix)/var/log/macos-hotkey-app-switcher.log`
+- nix-darwin: `~/Library/Logs/macos-hotkey-app-switcher/current`
 - Run by hand: stderr
 
 Every press, activation (with its timing) and reload is logged.
@@ -148,11 +150,11 @@ Every press, activation (with its timing) and reload is logged.
 <details>
 <summary><b>My edit didn't apply</b></summary>
 
-Run `app-hotkeys --check` to see the error. To force a reload, restart the service or send it `SIGHUP`:
+Run `macos-hotkey-app-switcher --check` to see the error. To force a reload, restart the service or send it `SIGHUP`:
 
 ```sh
-brew services restart app-hotkeys                          # Homebrew
-launchctl kill HUP gui/$(id -u)/org.nixos.app-hotkeys     # nix-darwin
+brew services restart macos-hotkey-app-switcher                        # Homebrew
+launchctl kill HUP gui/$(id -u)/org.nixos.macos-hotkey-app-switcher    # nix-darwin
 ```
 </details>
 
