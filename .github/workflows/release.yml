@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build (arm64 + x86_64)
+        run: scripts/build.sh
+
+      - name: Test
+        run: tests/check.sh build/app-hotkeys
+
+      - name: The tag matches app-hotkeys --version
+        run: test "$(build/app-hotkeys --version)" = "app-hotkeys ${GITHUB_REF_NAME#v}"
+
+      - name: Package
+        id: package
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          name="app-hotkeys-$version-macos-universal"
+          mkdir -p "dist/$name"
+          cp build/app-hotkeys LICENSE README.md examples/hotkeys.conf "dist/$name/"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+          cd dist
+          shasum -a 256 "$name.tar.gz" | tee "$name.tar.gz.sha256"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(cut -d' ' -f1 "$name.tar.gz.sha256")" >> "$GITHUB_OUTPUT"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ steps.package.outputs.name }}
+          SHA256: ${{ steps.package.outputs.sha256 }}
+        run: |
+          cat > notes.md <<NOTES
+          ## Install
+
+          \`\`\`sh
+          brew install basnijholt/tap/app-hotkeys
+          brew services start app-hotkeys
+          \`\`\`
+
+          Or download \`$NAME.tar.gz\` below: a universal (Apple silicon + Intel) binary for macOS 13 and later.
+
+          SHA-256: \`$SHA256\`
+          NOTES
+          gh release create "$GITHUB_REF_NAME" "dist/$NAME.tar.gz" "dist/$NAME.tar.gz.sha256" \
+            --verify-tag --title "app-hotkeys ${GITHUB_REF_NAME#v}" --notes-file notes.md --generate-notes
