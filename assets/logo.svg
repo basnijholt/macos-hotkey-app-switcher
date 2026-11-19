@@ -1,5 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <title>app-hotkeys</title>
+  <style>
+    @media (prefers-reduced-motion: no-preference) {
+      .cap, .shadow, .back, .front, .halo { animation: 5s ease-in-out infinite; }
+      .cap { animation-name: press; }
+      .shadow { animation-name: shrink; }
+      .back { animation-name: nudge; }
+      .front { animation-name: lift; }
+      .halo { animation-name: glow; }
+    }
+    /* 0% and 100% are the static logo; most of the loop is at rest */
+    @keyframes press { 0%, 8%, 22%, 100% { transform: none; } 12%, 16% { transform: translateY(4px); } }
+    @keyframes shrink { 0%, 8%, 22%, 100% { opacity: 1; } 12%, 16% { opacity: 0; } }
+    @keyframes nudge { 0%, 14%, 52%, 100% { transform: none; opacity: 1; } 28%, 36% { transform: translate(-2px, 2px); opacity: .6; } }
+    @keyframes lift { 0%, 14%, 52%, 100% { transform: none; } 28%, 36% { transform: translateY(-1.5px); } }
+    @keyframes glow { 0%, 14%, 52%, 100% { opacity: 0; } 30% { opacity: .45; } }
+  </style>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#4F7BFF"/>
@@ -12,17 +28,22 @@
   </defs>
   <rect width="128" height="128" rx="28" fill="url(#bg)"/>
   <!-- the app behind -->
-  <rect x="40" y="18" width="66" height="46" rx="7" fill="#fff" fill-opacity=".28"/>
+  <rect class="back" x="40" y="18" width="66" height="46" rx="7" fill="#fff" fill-opacity=".28"/>
   <!-- the app brought to the front -->
-  <rect x="20" y="32" width="68" height="50" rx="7" fill="#fff"/>
-  <circle cx="29" cy="41" r="2.8" fill="#FF5F57"/>
-  <circle cx="37" cy="41" r="2.8" fill="#FEBC2E"/>
-  <circle cx="45" cy="41" r="2.8" fill="#28C840"/>
-  <rect x="29" y="53" width="40" height="5" rx="2.5" fill="#C9D3FF"/>
-  <rect x="29" y="63" width="28" height="5" rx="2.5" fill="#E2E7FF"/>
+  <g class="front">
+    <rect class="halo" x="17.5" y="29.5" width="73" height="55" rx="9.5" fill="none" stroke="#fff" stroke-width="2" opacity="0"/>
+    <rect x="20" y="32" width="68" height="50" rx="7" fill="#fff"/>
+    <circle cx="29" cy="41" r="2.8" fill="#FF5F57"/>
+    <circle cx="37" cy="41" r="2.8" fill="#FEBC2E"/>
+    <circle cx="45" cy="41" r="2.8" fill="#28C840"/>
+    <rect x="29" y="53" width="40" height="5" rx="2.5" fill="#C9D3FF"/>
+    <rect x="29" y="63" width="28" height="5" rx="2.5" fill="#E2E7FF"/>
+  </g>
   <!-- the keycap -->
-  <rect x="64" y="64" width="48" height="48" rx="12" fill="#151233" fill-opacity=".35" transform="translate(0 3)"/>
-  <rect x="64" y="64" width="48" height="48" rx="12" fill="#1B1740"/>
-  <rect x="68" y="66" width="40" height="38" rx="9" fill="url(#cap)"/>
-  <path d="M88 73 100 85H93V95H83V85H76Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+  <g class="shadow"><rect x="64" y="67" width="48" height="48" rx="12" fill="#151233" fill-opacity=".35"/></g>
+  <g class="cap">
+    <rect x="64" y="64" width="48" height="48" rx="12" fill="#1B1740"/>
+    <rect x="68" y="66" width="40" height="38" rx="9" fill="url(#cap)"/>
+    <path d="M88 73 100 85H93V95H83V85H76Z" fill="#fff" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+  </g>
 </svg>
