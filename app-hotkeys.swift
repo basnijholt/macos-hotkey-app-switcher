@@ -4,6 +4,7 @@
 //   app-hotkeys [config]            run resident (default ~/.config/app-hotkeys/hotkeys.conf)
 //   app-hotkeys --check [config]    parse, print the bindings, exit 1 on errors
 //   app-hotkeys --activate <app>    run the activation path once (bundle id, or a path with a /)
+//   app-hotkeys --version           print the version
 import AppKit
 import Carbon
 
@@ -169,7 +170,9 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
 
 let args = Array(CommandLine.arguments.dropFirst())
 let defaultConfig = NSHomeDirectory() + "/.config/app-hotkeys/hotkeys.conf"
+let version = "0.1.0"
 
+if args.first == "--version" { print("app-hotkeys \(version)"); exit(0) }
 if args.first == "--check" {
     let path = args.count > 1 ? args[1] : defaultConfig
     guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { log("cannot read \(path)"); exit(1) }
@@ -187,7 +190,7 @@ if args.first == "--activate" {
     RunLoop.main.run()
 }
 if let a = args.first, a.hasPrefix("-") || args.count > 1 {
-    log("usage: app-hotkeys [config] | --check [config] | --activate <bundle-id|path.app>"); exit(2)
+    log("usage: app-hotkeys [config] | --check [config] | --activate <bundle-id|path.app> | --version"); exit(2)
 }
 
 let configPath = args.first ?? defaultConfig
