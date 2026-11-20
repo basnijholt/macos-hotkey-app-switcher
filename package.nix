@@ -4,11 +4,11 @@
   swiftPackages,
 }:
 
-# Built with nixpkgs' Swift against nixpkgs' macOS SDK, so no Xcode is needed. It needs no
-# TCC permission (no event tap, no Accessibility), so a new /nix/store path after a rebuild is fine.
+# Built with nixpkgs' Swift against nixpkgs' macOS SDK, so no Xcode is needed. Hotkeys need no
+# Accessibility or Input Monitoring permission. Opt-in reopen may need Automation approval.
 swiftPackages.stdenv.mkDerivation {
   pname = "macos-hotkey-app-switcher";
-  version = "0.2.0";
+  version = "0.3.0";
   src = ./macos-hotkey-app-switcher.swift;
   dontUnpack = true;
   nativeBuildInputs = [ swift ];

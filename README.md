@@ -19,7 +19,9 @@
 
 > Formerly `app-hotkeys`: move your config to `~/.config/macos-hotkey-app-switcher/hotkeys.conf`; `brew upgrade` migrates the Homebrew install.
 
-Press a key combination and the app comes to the front with all its windows, even if it is already in front (a window buried under another app's comes back on top). If it isn't running, it is launched. Add `| reopen` to a binding if you also want to send the app a Dock-style reopen event when it is already running. The app decides how to handle that event.
+> Upgrading from 0.2.0: reopen events are now opt-in. Add ` | reopen` after the key combination on any binding that should request Dock-style reopen behavior.
+
+Press a key combination and the app comes to the front with all its windows, even if it is already in front (a window buried under another app's comes back on top). If it isn't running, it is launched. Add `| reopen` after a key combination if you also want to send the app a Dock-style reopen event when it is already running. The app decides how to handle that event.
 
 ## Why
 
@@ -42,10 +44,10 @@ hyper+n = /System/Applications/Notes.app
 
 One binding per line: `modifiers+key = bundle id`. A value with a `/` is a path to an app. See [`examples/hotkeys.conf`](examples/hotkeys.conf).
 
-To request Dock-style reopen behavior for a running app, add ` | reopen` after its bundle ID or path (with spaces around `|`):
+To request Dock-style reopen behavior for a running app, add ` | reopen` after the key combination (with spaces around `|`):
 
 ```ini
-ctrl+alt+shift+t = com.apple.Terminal | reopen
+ctrl+alt+shift+t | reopen = com.apple.Terminal
 ```
 
 ## Install
@@ -94,7 +96,7 @@ swiftc -O -framework AppKit -framework Carbon macos-hotkey-app-switcher.swift -o
 
 | | |
 |---|---|
-| **Format** | `modifiers+key = target [\| reopen]`, one per line; `#` starts a comment |
+| **Format** | `modifiers+key [\| reopen] = target`, one per line; `#` starts a comment |
 | **Target** | a bundle id (`com.apple.Safari`), or an app path if it contains a `/` (`~/Applications/Foo.app`) |
 | **Reopen** | optional, for running apps only; sends a no-reply reopen Apple Event after bringing the app forward |
 | **Modifiers** | `ctrl` / `control`, `alt` / `opt` / `option`, `shift`, `cmd` / `command`, `hyper` (all four) |

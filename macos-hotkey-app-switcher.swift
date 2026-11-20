@@ -58,11 +58,11 @@ func parse(_ text: String) -> (bindings: [Binding], errors: [String]) {
             .trimmingCharacters(in: .whitespaces)
         if line.isEmpty { continue }
         let eq = line.lastIndex(of: "=")  // last, so "cmd+= = x" binds the = key
-        let lhs = eq.map { line[..<$0].trimmingCharacters(in: .whitespaces).lowercased() } ?? ""
-        let value = eq.map { line[line.index(after: $0)...].trimmingCharacters(in: .whitespaces) } ?? ""
-        let separator = value.range(of: " | ", options: .backwards)
-        let target = separator.map { value[..<$0.lowerBound].trimmingCharacters(in: .whitespaces) } ?? value
-        let option = separator.map { value[$0.upperBound...].trimmingCharacters(in: .whitespaces) }
+        let rawLHS = eq.map { line[..<$0].trimmingCharacters(in: .whitespaces).lowercased() } ?? ""
+        let separator = rawLHS.range(of: " | ", options: .backwards)
+        let lhs = separator.map { rawLHS[..<$0.lowerBound].trimmingCharacters(in: .whitespaces) } ?? rawLHS
+        let option = separator.map { rawLHS[$0.upperBound...].trimmingCharacters(in: .whitespaces) }
+        let target = eq.map { line[line.index(after: $0)...].trimmingCharacters(in: .whitespaces) } ?? ""
         if lhs.isEmpty || target.isEmpty {
             errors.append("line \(n): expected 'modifiers+key = bundle.id', got '\(line)'"); continue
         }
@@ -168,7 +168,7 @@ func activate(_ target: String, reopenOnActivate: Bool = false, done: @escaping 
 
 let args = Array(CommandLine.arguments.dropFirst())
 let defaultConfig = NSHomeDirectory() + "/.config/macos-hotkey-app-switcher/hotkeys.conf"
-let version = "0.2.0"
+let version = "0.3.0"
 
 if args.first == "--version" { print("macos-hotkey-app-switcher \(version)"); exit(0) }
 if args.first == "--check" {
@@ -176,7 +176,7 @@ if args.first == "--check" {
     guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { log("cannot read \(path)"); exit(1) }
     let (bindings, errors) = parse(text)
     for b in bindings {
-        print("line \(b.line): \(b.combo) = \(b.target)\(b.reopen ? " | reopen" : "")\(appURL(b.target) == nil ? "  (not installed here)" : "")")
+        print("line \(b.line): \(b.combo)\(b.reopen ? " | reopen" : "") = \(b.target)\(appURL(b.target) == nil ? "  (not installed here)" : "")")
     }
     for e in errors { log("\(path): \(e)") }
     exit(errors.isEmpty ? 0 : 1)
