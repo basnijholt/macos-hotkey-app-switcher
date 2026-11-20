@@ -23,7 +23,7 @@ Press a key combination and the app comes to the front with all its windows, eve
 
 ## Why
 
-- ⚡ **Fast.** It raises apps the way Keyboard Maestro does: about 27 ms from key press to app in front, twice as fast as `open -b` and four times faster than `osascript`.
+- ⚡ **Fast.** It raises all windows like Keyboard Maestro. On an M2, v0.3.0 took about 29 ms from key press to app in front.
 - 📝 **Plain text config.** One line per hotkey, kept in your dotfiles. Saving the file applies it at once.
 - 🔓 **No permissions.** No event tap, so no Accessibility or Input Monitoring prompt.
 - 🪶 **Tiny.** One Swift file, no dependencies, no menu bar icon, no UI.
@@ -121,11 +121,11 @@ The config file is watched, so edits apply within a fraction of a second (with a
 
 ### Benchmark
 
-From key press to app in front, median, on a MacBook M2:
+Original v0.2.0 benchmark: median time from key press to app in front on a MacBook M2.
 
 | Method | Median |
 |---|---:|
-| **macos-hotkey-app-switcher** | **27 ms** |
+| **macos-hotkey-app-switcher v0.2.0** | **27 ms** |
 | `open -b <bundle id>` | 58 ms |
 | `osascript -e 'tell application id "…" to activate'` | 112 ms |
 

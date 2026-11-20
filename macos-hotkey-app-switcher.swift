@@ -113,6 +113,13 @@ func reopen(_ pid: pid_t) -> OSStatus {
 
 var activationRequest = 0  // a slow launch must not take the front back from a later hotkey
 
+func requestActivation(_ app: NSRunningApplication) -> Bool {
+    var options: NSApplication.ActivationOptions = [.activateAllWindows]
+    // Before macOS 14, background activation needs the legacy ignore-other-apps flag.
+    if #unavailable(macOS 14) { options.insert(.init(rawValue: 2)) }
+    return app.activate(options: options)
+}
+
 func activate(_ target: String, done: @escaping (Bool) -> Void) {
     activationRequest += 1
     let start = DispatchTime.now(), request = activationRequest
@@ -120,11 +127,11 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
     if let app = runningApp(target) {
         // Also when it is already in front, like KM's "leave it at the front": raise all
         // its windows, e.g. one buried under another app's window.
-        let pid = app.processIdentifier, raised = app.activate(options: [.activateAllWindows]), reopenErr = reopen(pid)
-        var action = raised ? "front" : "activate refused"
+        let pid = app.processIdentifier, requested = requestActivation(app), reopenErr = reopen(pid)
+        var action = requested ? "activation requested" : "activate failed"
         action += reopenErr == noErr ? ", reopened" : ", reopen failed (\(reopenErr))"
         log("\(target) (pid \(pid)): \(action) in \(ms())")
-        return done(raised && reopenErr == noErr)
+        return done(requested && reopenErr == noErr)
     }
     guard let url = appURL(target) else { log("\(target): not installed"); return done(false) }
     let config = NSWorkspace.OpenConfiguration()
@@ -135,9 +142,9 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
             if request != activationRequest {
                 log("\(target) (pid \(app.processIdentifier)): launched, not raised (a newer hotkey fired)"); return done(true)
             }
-            let raised = app.activate(options: [.activateAllWindows])
-            log("\(target) (pid \(app.processIdentifier)): launched\(raised ? "" : ", activate refused") in \(ms())")
-            done(raised)
+            let requested = requestActivation(app)
+            log("\(target) (pid \(app.processIdentifier)): launched\(requested ? ", activation requested" : ", activate failed") in \(ms())")
+            done(requested)
         }
     }
 }
