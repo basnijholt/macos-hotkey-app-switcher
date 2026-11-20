@@ -17,8 +17,6 @@
 
 ---
 
-> Formerly `app-hotkeys`: move your config to `~/.config/macos-hotkey-app-switcher/hotkeys.conf`; `brew upgrade` migrates the Homebrew install.
-
 Press a key combination and the app comes to the front with all its windows, even if it is already in front (a window buried under another app's comes back on top). If it isn't running, it is launched. It also gets a reopen, like a click on its Dock icon, which the app handles itself: nothing happens if it has a window open, a minimized window is restored, and an app with no windows opens one.
 
 ## Why
