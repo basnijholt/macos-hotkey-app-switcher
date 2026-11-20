@@ -1,19 +1,12 @@
 // macos-hotkey-app-switcher: global hotkeys that bring an app to the front, read from a plain text file.
-// Copies Keyboard Maestro's "Activate a Specific Application": a Carbon RegisterEventHotKey
-// handler calls SetFrontProcessWithOptions. No event tap, so no Accessibility permission.
+// A Carbon hotkey calls public AppKit activation. On an M2 it matched Keyboard Maestro's
+// deprecated SetFrontProcessWithOptions for speed. No event tap or Accessibility permission.
 //   macos-hotkey-app-switcher [config]            run resident (default ~/.config/macos-hotkey-app-switcher/hotkeys.conf)
 //   macos-hotkey-app-switcher --check [config]    parse, print the bindings, exit 1 on errors
 //   macos-hotkey-app-switcher --activate <app>    run the activation path once (bundle id, or a path with a /)
 //   macos-hotkey-app-switcher --version           print the version
 import AppKit
 import Carbon
-
-// Deprecated since 10.9 and hidden from Swift, but still declared in HIServices/Processes.h and
-// exported. They raise an app with no cooperative-activation handshake, which is why KM uses them.
-@_silgen_name("GetProcessForPID")
-func getProcessForPID(_ pid: pid_t, _ psn: UnsafeMutablePointer<ProcessSerialNumber>) -> OSStatus
-@_silgen_name("SetFrontProcessWithOptions")
-func setFrontProcessWithOptions(_ psn: UnsafePointer<ProcessSerialNumber>, _ options: OptionBits) -> OSStatus
 
 struct Binding: Equatable {
     let line: Int, mods: UInt32, key: UInt32, combo: String, target: String
@@ -107,12 +100,6 @@ func runningApp(_ target: String) -> NSRunningApplication? {
     return NSWorkspace.shared.runningApplications.first { $0.bundleURL?.resolvingSymlinksInPath().path == path }
 }
 
-func setFront(_ pid: pid_t) -> OSStatus {
-    var psn = ProcessSerialNumber()
-    let err = getProcessForPID(pid, &psn)
-    return err != noErr ? err : setFrontProcessWithOptions(&psn, 0)  // 0 = all windows, like KM
-}
-
 // What a Dock click sends (KM's "Reopen initial windows"). The app decides: AppKit counts its own
 // windows, including ones on other Spaces, so with visible windows nothing happens, with only
 // minimized ones one is unminimized, and with none a new window opens.
@@ -131,13 +118,13 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
     let start = DispatchTime.now(), request = activationRequest
     let ms = { String(format: "%.1f ms", Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e6) }
     if let app = runningApp(target) {
-        // Also when it is already in front, like KM's "leave it at the front": flags 0 raises all
+        // Also when it is already in front, like KM's "leave it at the front": raise all
         // its windows, e.g. one buried under another app's window.
-        let pid = app.processIdentifier, err = setFront(pid), reopenErr = reopen(pid)
-        var action = err == noErr ? "front" : "SetFrontProcessWithOptions failed (\(err))"
+        let pid = app.processIdentifier, raised = app.activate(options: [.activateAllWindows]), reopenErr = reopen(pid)
+        var action = raised ? "front" : "activate refused"
         action += reopenErr == noErr ? ", reopened" : ", reopen failed (\(reopenErr))"
         log("\(target) (pid \(pid)): \(action) in \(ms())")
-        return done(!action.contains("failed"))
+        return done(raised && reopenErr == noErr)
     }
     guard let url = appURL(target) else { log("\(target): not installed"); return done(false) }
     let config = NSWorkspace.OpenConfiguration()
@@ -148,9 +135,9 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
             if request != activationRequest {
                 log("\(target) (pid \(app.processIdentifier)): launched, not raised (a newer hotkey fired)"); return done(true)
             }
-            let err = setFront(app.processIdentifier)
-            log("\(target) (pid \(app.processIdentifier)): launched\(err == noErr ? "" : ", SetFront failed (\(err))") in \(ms())")
-            done(err == noErr)
+            let raised = app.activate(options: [.activateAllWindows])
+            log("\(target) (pid \(app.processIdentifier)): launched\(raised ? "" : ", activate refused") in \(ms())")
+            done(raised)
         }
     }
 }
@@ -159,7 +146,7 @@ func activate(_ target: String, done: @escaping (Bool) -> Void) {
 
 let args = Array(CommandLine.arguments.dropFirst())
 let defaultConfig = NSHomeDirectory() + "/.config/macos-hotkey-app-switcher/hotkeys.conf"
-let version = "0.2.0"
+let version = "0.3.0"
 
 if args.first == "--version" { print("macos-hotkey-app-switcher \(version)"); exit(0) }
 if args.first == "--check" {

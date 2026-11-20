@@ -115,7 +115,7 @@ line 2: ctrl+alt+shift+t = com.apple.Terminal
 
 ## How it works
 
-A Carbon `RegisterEventHotKey` handler calls `SetFrontProcessWithOptions` in-process, the same call behind Keyboard Maestro's "Activate a Specific Application" action. It raises the app with all its windows and skips the cooperative-activation handshake, which is what makes it fast. It does so even when the app is already in front, like Keyboard Maestro's "leave it at the front". Then it sends the reopen Apple Event a Dock click sends (Keyboard Maestro's "Reopen initial windows"); the app decides what to do with it, counting its own windows, including ones on other Spaces.
+A Carbon hotkey handler calls AppKit's `NSRunningApplication.activate` with `.activateAllWindows`. It raises all the app's windows, even if the app is already in front. On a MacBook M2 it was as fast as Keyboard Maestro's deprecated `SetFrontProcessWithOptions` call. For a running app, the switcher then sends the same reopen Apple Event as a Dock click. The app decides how to respond, counting its own windows, including ones on other Spaces.
 
 The config file is watched, so edits apply within a fraction of a second (with a 2 s poll as a fallback).
 
