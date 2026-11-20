@@ -12,6 +12,21 @@ echo "$version"
 echo "== the example config passes --check"
 "$bin" --check examples/hotkeys.conf
 
+echo "== reopen is opt-in and recognized as an option"
+reopen_output=$("$bin" --check tests/reopen.conf)
+echo "$reopen_output"
+[[ "$reopen_output" == *"com.apple.Safari | reopen"* ]]
+[[ "$reopen_output" != *"(not installed here)"* ]]
+
+echo "== a pipe in an app path remains part of the path"
+path_output=$("$bin" --check tests/pipe-path.conf)
+[[ "$path_output" == *"Foo|Bar.app"* ]]
+
+echo "== an unknown activation option is rejected"
+code=0
+"$bin" --check tests/invalid-reopen.conf 2> /dev/null || code=$?
+[ "$code" -eq 1 ] || { echo "expected exit 1, got $code"; exit 1; }
+
 echo "== a broken config fails --check with exit 1 and names each bad line"
 err=$(mktemp)
 code=0

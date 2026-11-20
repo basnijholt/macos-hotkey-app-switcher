@@ -16,7 +16,7 @@ func getProcessForPID(_ pid: pid_t, _ psn: UnsafeMutablePointer<ProcessSerialNum
 func setFrontProcessWithOptions(_ psn: UnsafePointer<ProcessSerialNumber>, _ options: OptionBits) -> OSStatus
 
 struct Binding: Equatable {
-    let line: Int, mods: UInt32, key: UInt32, combo: String, target: String
+    let line: Int, mods: UInt32, key: UInt32, combo: String, target: String, reopen: Bool
     var chord: UInt64 { UInt64(mods) << 32 | UInt64(key) }  // esc and escape are the same chord
 }
 
@@ -59,9 +59,15 @@ func parse(_ text: String) -> (bindings: [Binding], errors: [String]) {
         if line.isEmpty { continue }
         let eq = line.lastIndex(of: "=")  // last, so "cmd+= = x" binds the = key
         let lhs = eq.map { line[..<$0].trimmingCharacters(in: .whitespaces).lowercased() } ?? ""
-        let target = eq.map { line[line.index(after: $0)...].trimmingCharacters(in: .whitespaces) } ?? ""
+        let value = eq.map { line[line.index(after: $0)...].trimmingCharacters(in: .whitespaces) } ?? ""
+        let separator = value.range(of: " | ", options: .backwards)
+        let target = separator.map { value[..<$0.lowerBound].trimmingCharacters(in: .whitespaces) } ?? value
+        let option = separator.map { value[$0.upperBound...].trimmingCharacters(in: .whitespaces) }
         if lhs.isEmpty || target.isEmpty {
             errors.append("line \(n): expected 'modifiers+key = bundle.id', got '\(line)'"); continue
+        }
+        if let option, option != "reopen" {
+            errors.append("line \(n): unknown activation option '\(option)' (use reopen)"); continue
         }
         let parts = lhs.split(separator: "+", omittingEmptySubsequences: false).map { $0.trimmingCharacters(in: .whitespaces) }
         if let bad = parts.dropLast().first(where: { modifierBits[$0] == nil }) {
@@ -71,7 +77,7 @@ func parse(_ text: String) -> (bindings: [Binding], errors: [String]) {
         guard let key = keyCodes[keyName] else {
             errors.append("line \(n): " + (keyName.isEmpty ? "missing key after '+'" : "unknown key '\(keyName)'")); continue
         }
-        let b = Binding(line: n, mods: mods, key: key, combo: comboName(mods, keyName), target: target)
+        let b = Binding(line: n, mods: mods, key: key, combo: comboName(mods, keyName), target: target, reopen: option != nil)
         if let first = seen[b.chord] {
             errors.append("line \(n): \(b.combo) is the same chord as line \(first.line) (\(first.combo))"); continue
         }
@@ -113,9 +119,8 @@ func setFront(_ pid: pid_t) -> OSStatus {
     return err != noErr ? err : setFrontProcessWithOptions(&psn, 0)  // 0 = all windows, like KM
 }
 
-// What a Dock click sends (KM's "Reopen initial windows"). The app decides: AppKit counts its own
-// windows, including ones on other Spaces, so with visible windows nothing happens, with only
-// minimized ones one is unminimized, and with none a new window opens.
+// What a Dock click sends (KM's optional "Reopen initial windows"). The target app decides
+// whether to restore a window, open one, or do nothing.
 func reopen(_ pid: pid_t) -> OSStatus {
     let event = NSAppleEventDescriptor(
         eventClass: AEEventClass(kCoreEventClass), eventID: AEEventID(kAEReopenApplication),
@@ -126,18 +131,22 @@ func reopen(_ pid: pid_t) -> OSStatus {
 
 var activationRequest = 0  // a slow launch must not take the front back from a later hotkey
 
-func activate(_ target: String, done: @escaping (Bool) -> Void) {
+func activate(_ target: String, reopenOnActivate: Bool = false, done: @escaping (Bool) -> Void) {
     activationRequest += 1
     let start = DispatchTime.now(), request = activationRequest
     let ms = { String(format: "%.1f ms", Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1e6) }
     if let app = runningApp(target) {
         // Also when it is already in front, like KM's "leave it at the front": flags 0 raises all
         // its windows, e.g. one buried under another app's window.
-        let pid = app.processIdentifier, err = setFront(pid), reopenErr = reopen(pid)
+        let pid = app.processIdentifier, err = setFront(pid)
         var action = err == noErr ? "front" : "SetFrontProcessWithOptions failed (\(err))"
-        action += reopenErr == noErr ? ", reopened" : ", reopen failed (\(reopenErr))"
+        var reopenErr: OSStatus = noErr
+        if err == noErr && reopenOnActivate {
+            reopenErr = reopen(pid)
+            action += reopenErr == noErr ? ", reopen sent" : ", reopen failed (\(reopenErr))"
+        }
         log("\(target) (pid \(pid)): \(action) in \(ms())")
-        return done(!action.contains("failed"))
+        return done(err == noErr && reopenErr == noErr)
     }
     guard let url = appURL(target) else { log("\(target): not installed"); return done(false) }
     let config = NSWorkspace.OpenConfiguration()
@@ -167,7 +176,7 @@ if args.first == "--check" {
     guard let text = try? String(contentsOfFile: path, encoding: .utf8) else { log("cannot read \(path)"); exit(1) }
     let (bindings, errors) = parse(text)
     for b in bindings {
-        print("line \(b.line): \(b.combo) = \(b.target)\(appURL(b.target) == nil ? "  (not installed here)" : "")")
+        print("line \(b.line): \(b.combo) = \(b.target)\(b.reopen ? " | reopen" : "")\(appURL(b.target) == nil ? "  (not installed here)" : "")")
     }
     for e in errors { log("\(path): \(e)") }
     exit(errors.isEmpty ? 0 : 1)
@@ -260,7 +269,7 @@ let installed = InstallEventHandler(GetEventDispatcherTarget(), { _, event, _ in
                                 nil, MemoryLayout<EventHotKeyID>.size, nil, &id)
     guard err == noErr, id.signature == signature, let b = active[id.id] else { return OSStatus(eventNotHandledErr) }
     log("\(b.combo) pressed")
-    activate(b.target) { _ in }
+    activate(b.target, reopenOnActivate: b.reopen) { _ in }
     return noErr
 }, 1, &pressed, nil, nil)
 guard installed == noErr else { log("InstallEventHandler failed, OSStatus \(installed)"); exit(1) }

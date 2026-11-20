@@ -19,13 +19,13 @@
 
 > Formerly `app-hotkeys`: move your config to `~/.config/macos-hotkey-app-switcher/hotkeys.conf`; `brew upgrade` migrates the Homebrew install.
 
-Press a key combination and the app comes to the front with all its windows, even if it is already in front (a window buried under another app's comes back on top). If it isn't running, it is launched. It also gets a reopen, like a click on its Dock icon, which the app handles itself: nothing happens if it has a window open, a minimized window is restored, and an app with no windows opens one.
+Press a key combination and the app comes to the front with all its windows, even if it is already in front (a window buried under another app's comes back on top). If it isn't running, it is launched. Add `| reopen` to a binding if you also want to send the app a Dock-style reopen event when it is already running. The app decides how to handle that event.
 
 ## Why
 
 - ⚡ **Fast.** It raises apps the way Keyboard Maestro does: about 27 ms from key press to app in front, twice as fast as `open -b` and four times faster than `osascript`.
 - 📝 **Plain text config.** One line per hotkey, kept in your dotfiles. Saving the file applies it at once.
-- 🔓 **No permissions.** No event tap, so no Accessibility or Input Monitoring prompt.
+- 🔓 **No hotkey permissions.** No event tap, so no Accessibility or Input Monitoring prompt. Opt-in `| reopen` sends an Apple Event and may require Automation approval.
 - 🪶 **Tiny.** One Swift file, no dependencies, no menu bar icon, no UI.
 
 ## Config
@@ -41,6 +41,12 @@ hyper+n = /System/Applications/Notes.app
 ```
 
 One binding per line: `modifiers+key = bundle id`. A value with a `/` is a path to an app. See [`examples/hotkeys.conf`](examples/hotkeys.conf).
+
+To request Dock-style reopen behavior for a running app, add ` | reopen` after its bundle ID or path (with spaces around `|`):
+
+```ini
+ctrl+alt+shift+t = com.apple.Terminal | reopen
+```
 
 ## Install
 
@@ -88,8 +94,9 @@ swiftc -O -framework AppKit -framework Carbon macos-hotkey-app-switcher.swift -o
 
 | | |
 |---|---|
-| **Format** | `modifiers+key = target`, one per line; `#` starts a comment |
+| **Format** | `modifiers+key = target [\| reopen]`, one per line; `#` starts a comment |
 | **Target** | a bundle id (`com.apple.Safari`), or an app path if it contains a `/` (`~/Applications/Foo.app`) |
+| **Reopen** | optional, for running apps only; sends a no-reply reopen Apple Event after bringing the app forward |
 | **Modifiers** | `ctrl` / `control`, `alt` / `opt` / `option`, `shift`, `cmd` / `command`, `hyper` (all four) |
 | **Letters, digits** | `a`–`z`, `0`–`9` |
 | **Function keys** | `f1`–`f20` |
@@ -115,7 +122,7 @@ line 2: ctrl+alt+shift+t = com.apple.Terminal
 
 ## How it works
 
-A Carbon `RegisterEventHotKey` handler calls `SetFrontProcessWithOptions` in-process, the same call behind Keyboard Maestro's "Activate a Specific Application" action. It raises the app with all its windows and skips the cooperative-activation handshake, which is what makes it fast. It does so even when the app is already in front, like Keyboard Maestro's "leave it at the front". Then it sends the reopen Apple Event a Dock click sends (Keyboard Maestro's "Reopen initial windows"); the app decides what to do with it, counting its own windows, including ones on other Spaces.
+A Carbon `RegisterEventHotKey` handler calls `SetFrontProcessWithOptions` in-process, the same call behind Keyboard Maestro's "Activate a Specific Application" action. It raises the app with all its windows and skips the cooperative-activation handshake, which is what makes it fast. It does so even when the app is already in front, like Keyboard Maestro's "leave it at the front". A binding with `| reopen` also sends the reopen Apple Event a Dock click sends (Keyboard Maestro's optional "Reopen initial windows"). The target app controls what happens in response.
 
 The config file is watched, so edits apply within a fraction of a second (with a 2 s poll as a fallback).
 
